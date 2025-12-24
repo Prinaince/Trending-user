@@ -45,11 +45,16 @@
     </div>
 
     <script>
+        // ===============================================
+        // 🔴 UNIQUE ID FOR TRENDING PAGE (MATCHES INDEX)
+        // ===============================================
+        const APP_ID = 'trending_favs'; 
+
         // --- LOGIC ---
 
         function loadFavorites() {
-            // Local Storage se data uthao
-            const favs = JSON.parse(localStorage.getItem('favs')) || [];
+            // Using Unique APP_ID
+            const favs = JSON.parse(localStorage.getItem(APP_ID)) || [];
             const grid = document.getElementById('fav-grid');
             const emptyMsg = document.getElementById('empty-msg');
 
@@ -104,12 +109,12 @@
             event.stopPropagation();
 
             if(confirm('Remove from favorites?')) {
-                let favs = JSON.parse(localStorage.getItem('favs')) || [];
+                let favs = JSON.parse(localStorage.getItem(APP_ID)) || [];
                 // Filter karke wo book hata do jiska ID match ho raha hai
                 favs = favs.filter(b => b.id != id);
                 
-                // Wapis save karo
-                localStorage.setItem('favs', JSON.stringify(favs));
+                // Wapis save karo using APP_ID
+                localStorage.setItem(APP_ID, JSON.stringify(favs));
                 
                 // UI Refresh karo
                 loadFavorites();
@@ -121,4 +126,4 @@
 
     </script>
 </body>
-</html>
+</html>/html>
