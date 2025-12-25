@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-Library</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Inter Font for clean UI -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     
     <script>
@@ -16,8 +16,8 @@
                 extend: {
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        primary: '#4f46e5', // Indigo-600
-                        bg: '#f3f4f6',      // Gray-100 (Soft reading bg)
+                        primary: '#4f46e5',
+                        bg: '#f3f4f6',
                     }
                 }
             }
@@ -25,13 +25,12 @@
     </script>
     <style>
         body { background-color: #f3f4f6; -webkit-tap-highlight-color: transparent; }
-        /* Hide Scrollbar but keep functionality */
         ::-webkit-scrollbar { width: 0px; background: transparent; }
     </style>
 </head>
 <body class="pb-20">
 
-    <!-- Sticky Header (Exact positions preserved) -->
+    <!-- Sticky Header -->
     <div class="sticky top-0 z-50 bg-white/90 backdrop-blur-md shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] px-4 py-3 flex gap-3 items-center">
         <!-- Search Bar -->
         <div class="relative w-full group">
@@ -39,210 +38,97 @@
             <input type="text" id="search" onkeyup="searchBooks()" placeholder="Search books..." 
                 class="w-full pl-10 pr-4 py-3.5 rounded-2xl bg-gray-100/80 border border-transparent focus:bg-white focus:border-primary/20 focus:ring-4 focus:ring-primary/10 outline-none transition-all text-gray-700 placeholder-gray-400 font-medium shadow-inner">
         </div>
-        
-        <!-- Favorites Button -->
-        <a href="favorites.html" class="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm text-gray-400 hover:text-red-500 hover:shadow-md hover:border-red-100 active:scale-95 transition-all">
-            <i class="fa-solid fa-heart text-xl"></i>
-        </a>
     </div>
 
     <!-- Book Grid -->
     <div class="px-4 mt-6">
+        <!-- Heading Text Removed -->
         <h2 class="text-xl font-bold text-gray-800 mb-5 tracking-tight"></h2>
         
         <div id="grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
             <!-- Loading Skeleton -->
-            <div class="col-span-full h-40 flex items-center justify-center text-gray-400 animate-pulse">
-                Loading books.
+            <div class="col-span-full h-40 flex items-center justify-center text-gray-500 animate-pulse">
+                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading books...
             </div>
         </div>
     </div>
 
     <script src="config.js"></script>
     <script>
-        // ===============================================
-        // 🔴 UNIQUE ID FOR TRENDING PAGE
-        // ===============================================
-        const APP_ID = 'trending_favs'; 
-
-        // Supabase Config Fallback (Using your provided Trending API keys)
+        // 1. SUPABASE CONFIGURATION
         if (typeof sb === 'undefined') {
              const SUPABASE_URL = 'https://puhcnhgxtqliupofalby.supabase.co';
+             
+             // SYNTAX ERROR FIXED HERE
              const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1aGNuaGd4dHFsaXVwb2ZhbGJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1NDU3NDUsImV4cCI6MjA4MjEyMTc0NX0.X4Tx-EAkkC8bmdlybvZ1-R5S_tQNCQyGvkFDbzbM4tI';
+             
              var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
 
+        // 2. LOAD BOOKS
         async function loadBooks() {
-            let { data: books, error } = await sb.from('books').select('*').order('created_at', { ascending: false });
-            if (!error) {
+            const grid = document.getElementById('grid');
+            try {
+                let { data: books, error } = await sb
+                    .from('books')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
                 window.allBooks = books; 
                 render(books);
+
+            } catch (err) {
+                console.error("Supabase Error:", err);
+                grid.innerHTML = `<div class="col-span-full text-center text-red-500 p-4">Error: ${err.message}</div>`;
             }
         }
 
+        // 3. RENDER
         function render(list) {
             const grid = document.getElementById('grid');
-            grid.innerHTML = '';
+            grid.innerHTML = ''; 
+            
+            if (!list || list.length === 0) {
+                grid.innerHTML = '<div class="col-span-full text-center text-gray-500 mt-10">No books found.</div>';
+                return;
+            }
             
             list.forEach(book => {
-                // Fallback for image
-                const img = book.poster_url || 'https://via.placeholder.com/300x450?text=No+Cover';
-                
+                const img = book.poster_url ? book.poster_url : 'https://via.placeholder.com/300x450?text=No+Cover';
+                const bookId = book.id; 
+
                 grid.innerHTML += `
                 <div class="group flex flex-col">
                     <div class="relative w-full aspect-[2/3] rounded-xl overflow-hidden shadow-sm bg-gray-200 border border-gray-100 group-hover:shadow-xl group-hover:shadow-primary/10 transition-all duration-300">
-                        <!-- Image -->
-                        <img src="${img}" onclick="location.href='details.html?id=${book.id}'" 
-                             class="w-full h-full object-cover cursor-pointer transition-transform duration-500 group-hover:scale-105">
-                        
-                        <!-- Gradient Overlay -->
+                        <img src="${img}" onclick="location.href='details.html?id=${bookId}'" 
+                             class="w-full h-full object-cover cursor-pointer transition-transform duration-500 group-hover:scale-105"
+                             onerror="this.src='https://via.placeholder.com/300x450?text=Error'">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-
-                        <!-- Fav Button (Inside Card) -->
-                        <button onclick="addFav(${book.id}, '${book.title.replace(/'/g, "\\'")}', '${img}')" 
-                            class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-md shadow-sm text-gray-400 hover:text-red-500 hover:scale-110 active:scale-90 transition-all z-10">
-                            <i class="fa-regular fa-heart text-sm"></i>
-                        </button>
                     </div>
                     
-                    <!-- Title -->
-                    <h3 onclick="location.href='details.html?id=${book.id}'" 
+                    <h3 onclick="location.href='details.html?id=${bookId}'" 
                         class="font-semibold text-gray-800 mt-3 text-sm leading-tight line-clamp-2 cursor-pointer group-hover:text-primary transition-colors px-1">
-                        ${book.title}
+                        ${book.title || 'Untitled'}
                     </h3>
                 </div>`;
             });
         }
 
+        // 4. SEARCH
         function searchBooks() {
             const query = document.getElementById('search').value.toLowerCase();
-            const filtered = window.allBooks.filter(b => b.title.toLowerCase().includes(query));
-            render(filtered);
-        }
-
-        function addFav(id, title, poster) {
-            // Stop click propagation
-            event.stopPropagation();
-            
-            // Using Unique APP_ID
-            let favs = JSON.parse(localStorage.getItem(APP_ID)) || [];
-            
-            if(!favs.find(f => f.id == id)) {
-                favs.push({id, title, poster_url: poster});
-                localStorage.setItem(APP_ID, JSON.stringify(favs));
-                
-                // Visual feedback on button
-                const btn = event.currentTarget;
-                btn.classList.add('text-red-500');
-                btn.querySelector('i').classList.replace('fa-regular', 'fa-solid');
-            } else {
-                alert("Already in Favorites!");
+            if (window.allBooks) {
+                const filtered = window.allBooks.filter(b => 
+                    (b.title && b.title.toLowerCase().includes(query))
+                );
+                render(filtered);
             }
         }
 
-        loadBooks();
-    </script>
-</body>
-</html>        <div class="relative w-full group">
-            <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors"></i>
-            <input type="text" id="search" onkeyup="searchBooks()" placeholder="Search books..." 
-                class="w-full pl-10 pr-4 py-3.5 rounded-2xl bg-gray-100/80 border border-transparent focus:bg-white focus:border-primary/20 focus:ring-4 focus:ring-primary/10 outline-none transition-all text-gray-700 placeholder-gray-400 font-medium shadow-inner">
-        </div>
-        
-        <!-- Favorites Button -->
-        <a href="favorites.html" class="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-2xl bg-white border border-gray-100 shadow-sm text-gray-400 hover:text-red-500 hover:shadow-md hover:border-red-100 active:scale-95 transition-all">
-            <i class="fa-solid fa-heart text-xl"></i>
-        </a>
-    </div>
-
-    <!-- Book Grid -->
-    <div class="px-4 mt-6">
-        <h2 class="text-xl font-bold text-gray-800 mb-5 tracking-tight"></h2>
-        
-        <div id="grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <!-- Loading Skeleton -->
-            <div class="col-span-full h-40 flex items-center justify-center text-gray-400 animate-pulse">
-                Loading books.
-            </div>
-        </div>
-    </div>
-
-    <script src="config.js"></script>
-    <script>
-        // Supabase Config Fallback (If config.js is missing for preview)
-        if (typeof sb === 'undefined') {
-             const SUPABASE_URL = 'https://puhcnhgxtqliupofalby.supabase.co';
-             const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1aGNuaGd4dHFsaXVwb2ZhbGJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1NDU3NDUsImV4cCI6MjA4MjEyMTc0NX0.X4Tx-EAkkC8bmdlybvZ1-R5S_tQNCQyGvkFDbzbM4tI';
-             var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        }
-
-        async function loadBooks() {
-            let { data: books, error } = await sb.from('books').select('*').order('created_at', { ascending: false });
-            if (!error) {
-                window.allBooks = books; 
-                render(books);
-            }
-        }
-
-        function render(list) {
-            const grid = document.getElementById('grid');
-            grid.innerHTML = '';
-            
-            list.forEach(book => {
-                // Fallback for image
-                const img = book.poster_url || 'https://via.placeholder.com/300x450?text=No+Cover';
-                
-                grid.innerHTML += `
-                <div class="group flex flex-col">
-                    <div class="relative w-full aspect-[2/3] rounded-xl overflow-hidden shadow-sm bg-gray-200 border border-gray-100 group-hover:shadow-xl group-hover:shadow-primary/10 transition-all duration-300">
-                        <!-- Image -->
-                        <img src="${img}" onclick="location.href='details.html?id=${book.id}'" 
-                             class="w-full h-full object-cover cursor-pointer transition-transform duration-500 group-hover:scale-105">
-                        
-                        <!-- Gradient Overlay -->
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-
-                        <!-- Fav Button (Inside Card) -->
-                        <button onclick="addFav(${book.id}, '${book.title.replace(/'/g, "\\'")}', '${img}')" 
-                            class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-md shadow-sm text-gray-400 hover:text-red-500 hover:scale-110 active:scale-90 transition-all z-10">
-                            <i class="fa-regular fa-heart text-sm"></i>
-                        </button>
-                    </div>
-                    
-                    <!-- Title -->
-                    <h3 onclick="location.href='details.html?id=${book.id}'" 
-                        class="font-semibold text-gray-800 mt-3 text-sm leading-tight line-clamp-2 cursor-pointer group-hover:text-primary transition-colors px-1">
-                        ${book.title}
-                    </h3>
-                </div>`;
-            });
-        }
-
-        function searchBooks() {
-            const query = document.getElementById('search').value.toLowerCase();
-            const filtered = window.allBooks.filter(b => b.title.toLowerCase().includes(query));
-            render(filtered);
-        }
-
-        function addFav(id, title, poster) {
-            // Stop click propagation to prevent opening details page when clicking heart
-            event.stopPropagation();
-            
-            let favs = JSON.parse(localStorage.getItem('favs')) || [];
-            if(!favs.find(f => f.id == id)) {
-                favs.push({id, title, poster_url: poster});
-                localStorage.setItem('favs', JSON.stringify(favs));
-                
-                // Visual feedback on button
-                const btn = event.currentTarget;
-                btn.classList.add('text-red-500');
-                btn.querySelector('i').classList.replace('fa-regular', 'fa-solid');
-            } else {
-                alert("Already in Favorites!");
-            }
-        }
-
-        loadBooks();
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadBooks);
     </script>
 </body>
 </html>
